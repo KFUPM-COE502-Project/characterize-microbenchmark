@@ -11,5 +11,6 @@
 
 /* Function declaration */
 void* impl_scalar(void* args);
+void* impl_scalar_manual(void* args);
 
 #endif //__IMPL_SCALAR_H_

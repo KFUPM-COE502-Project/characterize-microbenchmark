@@ -76,6 +76,7 @@ int main(int argc, char** argv)
   /* Parse arguments */
   /* Function pointers */
   void* (*impl_scalar_ptr  )(void* args) = impl_scalar;
+  void* (*impl_scalar_m_ptr)(void* args) = impl_scalar_manual;
   void* (*impl_vector_ptr  )(void* args) = impl_vector;
   void* (*impl_parallel_ptr)(void* args) = impl_parallel;
 
@@ -92,6 +93,8 @@ int main(int argc, char** argv)
       assert (++i < argc);
       if (strcmp(argv[i], "scalar") == 0) {
         impl = impl_scalar_ptr  ; impl_str = "scalar";
+      } else if (strcmp(argv[i], "scalar_manual"  ) == 0) {
+        impl = impl_scalar_m_ptr  ; impl_str = "Scalar Manual"  ;
       } else if (strcmp(argv[i], "vec"  ) == 0) {
         impl = impl_vector_ptr  ; impl_str = "vectorized"  ;
       } else if (strcmp(argv[i], "para" ) == 0) {
