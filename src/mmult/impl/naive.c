@@ -17,8 +17,6 @@
 #include "include/types.h"
 
 /* Naive Implementation */
-#pragma GCC push_options
-#pragma GCC optimize ("O1")
 void* impl_scalar_naive(void* args)
 {
   /* Get the argument struct */
@@ -45,4 +43,3 @@ void* impl_scalar_naive(void* args)
   }
   return NULL;
 }
-#pragma GCC pop_options

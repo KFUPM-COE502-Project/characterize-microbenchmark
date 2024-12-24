@@ -18,8 +18,6 @@
 
 /* Alternative Implementation */
 #define MIN(a, b)(((a) < (b)) ? (a) : (b))
-#pragma GCC push_options
-#pragma GCC optimize ("O1")
 void* impl_scalar_opt(void* args)
 {
   /* Get the argument struct */
@@ -68,4 +66,3 @@ void* impl_scalar_opt(void* args)
   /* Done */
   return NULL;
 }
-#pragma GCC pop_options

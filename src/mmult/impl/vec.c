@@ -27,8 +27,6 @@
 #include "include/types.h"
 
 /* Alternative Implementation */
-#pragma GCC push_options
-#pragma GCC optimize ("O1")
 void* impl_vector(void* args)
 {
   #if defined(__amd64__) || defined(__x86_64__)
@@ -161,4 +159,3 @@ void* impl_vector(void* args)
   #elif defined(__aarch__) || defined(__aarch64__) || defined(__arm64__)
   #endif
 }
-#pragma GCC pop_options
