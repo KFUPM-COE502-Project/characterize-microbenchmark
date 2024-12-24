@@ -56,7 +56,29 @@
 /* Include application-specific headers */
 #include "include/types.h"
 
-const int SIZE_DATA = 4 * 1024 * 1024;
+/*
+  Defult Arguments
+*/
+/* Matrix A Arguments*/
+const int SIZE_A_m = 12;
+const int SIZE_A_n = 11;
+const int SIZE_DATA_A = 4 * SIZE_A_m * SIZE_A_n;
+
+/* Matrix B Arguments*/
+const int SIZE_B_n = 11;
+const int SIZE_B_p = 13;
+const int SIZE_DATA_B = 4 * SIZE_B_n * SIZE_B_p;
+
+/* Matrix C Arguments*/
+const int SIZE_DATA_C = 4 * SIZE_A_m * SIZE_B_p;
+
+const int SIZE_B = 4;
+
+const int VAILIDAT = 1;
+
+const int PRINT = 0;
+
+const int IMP_TYPE = 1;
 
 int main(int argc, char** argv)
 {
@@ -65,13 +87,29 @@ int main(int argc, char** argv)
 
   /* Arguments */
   int nthreads = 1;
-  int cpu      = 0;
+  int cpu = 8;
 
   int nruns    = 10000;
   int nstdevs  = 3;
 
-  /* Data */
-  int data_size = SIZE_DATA;
+  int v = VAILIDAT;
+  int p = PRINT;
+  int t = IMP_TYPE;
+
+  /* Data A*/
+  int size_A_m = SIZE_A_m;
+  int size_A_n = SIZE_A_n;
+  int data_size_A = SIZE_DATA_A;
+
+  /* Data B*/
+  int size_B_n = SIZE_B_n;
+  int size_B_p = SIZE_B_p;
+  int data_size_B = SIZE_DATA_B;
+
+  /* Data C*/
+  int data_size_C = SIZE_DATA_C;
+
+  int size_b = SIZE_B;
 
   /* Parse arguments */
   /* Function pointers */
@@ -104,10 +142,20 @@ int main(int argc, char** argv)
       continue;
     }
 
-    /* Input/output data size */
+    /* Input/output data size For Matrix A & B */
     if (strcmp(argv[i], "-s") == 0 || strcmp(argv[i], "--size") == 0) {
-      assert (++i < argc);
-      data_size = atoi(argv[i]);
+      assert(++i < argc);
+      size_A_m = atoi(argv[i]);
+      assert(++i < argc);
+      size_A_n = atoi(argv[i]);
+      data_size_A = size_A_m * size_A_n * sizeof(float);
+      assert(++i < argc);
+      size_B_n = atoi(argv[i]);
+      assert(++i < argc);
+      size_B_p = atoi(argv[i]);
+      data_size_B = size_B_n * size_B_p * sizeof(float);
+
+      data_size_C = size_A_m * size_B_p * sizeof(float);
 
       continue;
     }
@@ -123,6 +171,31 @@ int main(int argc, char** argv)
     if (strcmp(argv[i], "--nstdevs") == 0) {
       assert (++i < argc);
       nstdevs = atoi(argv[i]);
+
+      continue;
+    }
+    if (strcmp(argv[i], "-b") == 0) {
+      assert(++i < argc);
+      size_b = atoi(argv[i]);
+
+      continue;
+    }
+    if (strcmp(argv[i], "-v") == 0) {
+      assert(++i < argc);
+      v = atoi(argv[i]);
+
+      continue;
+    }
+
+    if (strcmp(argv[i], "-p") == 0) {
+      assert(++i < argc);
+      p = atoi(argv[i]);
+
+      continue;
+    }
+    if (strcmp(argv[i], "-t") == 0) {
+      assert(++i < argc);
+      t = atoi(argv[i]);
 
       continue;
     }
@@ -149,6 +222,10 @@ int main(int argc, char** argv)
       continue;
     }
   }
+  if (impl_str == "vectorized" && t == 0)
+    impl_str = "vectorized (Naive)";
+  else if (impl_str == "vectorized")
+    impl_str = "vectorized (Block)";
 
   if (help || impl == NULL) {
     if (!help) {
@@ -171,14 +248,23 @@ int main(int argc, char** argv)
     printf("    -h | --help      Print this message\n");
     printf("    -n | --nthreads  Set number of threads available (default = %d)\n", nthreads);
     printf("    -c | --cpu       Set the main CPU for the program (default = %d)\n", cpu);
-    printf("    -s | --size      Size of input and output data (default = %d)\n", data_size);
+    printf("    -s | --size      Size of input Matrix A and Matrix B data (default A (M,N)= %i * %i , and Matrix B (N,P) = %i * %i)\n", size_A_m, size_A_n, SIZE_B_n, size_B_p);
     printf("         --nruns     Number of runs to the implementation (default = %d)\n", nruns);
     printf("         --stdevs    Number of standard deviation to exclude outliers (default = %d)\n", nstdevs);
+    printf("    -b               The size for the Block in Opt Implementation b x b (default = %d)\n", size_b);
+    printf("    -v               Validate the selected Implementation (1 for yes)(default = %d)\n", v);
+    printf("    -p               To print/write the input and/or the output Matrix (1 to print) (2 to file) (default = No Printing)\n");
+    printf("    -t               Implementation (Naive = 0) (Block != 0) used in Vector Implementation (default = Block)\n");
     printf("\n");
 
     exit(help? 0 : 1);
   }
 
+  /*Cheaking if the size of two matrixes are vailid for Matrix multiplication*/
+  if ((size_A_n - size_B_n) != 0) {
+    printf("You cannot Multiplay these two Matrixes (The Number of Coulme in Matrix A %i doesn't match with Number of Row  in the Matrix B %i)\n", size_A_n, size_B_n);
+    exit(help ? 0 : 1);
+  }
   /* Set our priority the highest */
   int nice_level = -20;
 
@@ -219,7 +305,7 @@ int main(int argc, char** argv)
 
   CPU_ZERO(&cpumask);
   for (int i = 0; i < nthreads; i++) {
-    CPU_SET(cpu + i, &cpumask);
+    CPU_SET((cpu + i) % nthreads, & cpumask);
   }
 
   res = sched_setaffinity(pid, sizeof(cpumask), &cpumask);
@@ -240,36 +326,82 @@ int main(int argc, char** argv)
 
   /* Datasets */
   /* Allocation and initialization */
-  byte* src   = __ALLOC_INIT_DATA(byte, data_size + 0);
-  byte* ref   = __ALLOC_INIT_DATA(byte, data_size + 4);
-  byte* dest  = __ALLOC_DATA     (byte, data_size + 4);
+  byte * src0 = __ALLOC_DATA(byte, data_size_A + 0);
+  byte * src1 = __ALLOC_DATA(byte, data_size_B + 0);
+  byte * ref = __ALLOC_DATA(byte, data_size_C + 4);
+  byte * dest = __ALLOC_DATA(byte, data_size_C + 4);
 
+  /* Generate Random Single-Precision Float-Point Data */
+  float * tmp;
+  float * tmp1;
+
+  if (p == 1)
+    printf("\nMatrix A\n");
+  /* src0 */
+  tmp = (float * ) src0;
+  for (int i = 0; i < size_A_m; i++) {
+    for (int j = 0; j < size_A_n; j++) {
+      /* Random float */
+      tmp[i * size_A_n + j] = (((float) rand()) / ((float) RAND_MAX)) * 1000.0;
+      if (p == 1)
+        printf("%f\t", tmp[i * size_A_n + j]);
+    }
+    if (p == 1)
+      printf("\n");
+  }
+  if (p == 1)
+    printf("\nMatrix B\n");
+  tmp1 = (float * ) src1;
+  for (int i = 0; i < size_B_n; i++) {
+    for (int j = 0; j < size_B_p; j++) {
+      /* Random float */
+      tmp1[i * size_B_p + j] = (((float) rand()) / ((float) RAND_MAX)) * 1000.0;
+      if (p == 1)
+        printf("%f\t", tmp1[i * size_B_p + j]);
+    }
+    if (p == 1)
+      printf("\n");
+  }
+
+  //exit(help? 0 : 1);
   /* Setting a guards, which is 0xdeadcafe.
      The guard should not change or be touched. */
-  __SET_GUARD(ref , data_size);
-  __SET_GUARD(dest, data_size);
+  __SET_GUARD(ref, data_size_C);
+  __SET_GUARD(dest, data_size_C);
 
   /* Generate ref data */
   /* Arguments for the functions */
   args_t args_ref;
 
-  args_ref.size     = data_size;
-  args_ref.input    = src;
-  args_ref.output   = ref;
+  args_ref.input_A_m = size_A_m;
+  args_ref.input_A_n = size_A_n;
+  args_ref.input_B_p = size_B_p;
+  args_ref.input0 = src0;
+  args_ref.input1 = src1;
+  args_ref.output = ref;
 
   args_ref.cpu      = cpu;
   args_ref.nthreads = nthreads;
 
   /* Running the reference function */
-  impl_ref(&args_ref);
+  if (v == 1) {
+    impl_ref( & args_ref);
+  } else {
+    printf("No Validation.\n");
+  }
 
   /* Execute the requested implementation */
   /* Arguments for the function */
   args_t args;
 
-  args.size     = data_size;
-  args.input    = src;
-  args.output   = dest;
+  args.input_A_m = size_A_m;
+  args.input_A_n = size_A_n;
+  args.input_B_p = size_B_p;
+  args.input0 = src0;
+  args.input1 = src1;
+  args.output = dest;
+  args.size_B = size_b;
+  args.impType = t;
 
   args.cpu      = cpu;
   args.nthreads = nthreads;
@@ -280,18 +412,16 @@ int main(int argc, char** argv)
   printf("  * Invoking the implementation %d times .... ", num_runs);
   for (int i = 0; i < num_runs; i++) {
     __SET_START_TIME();
-    for (int j = 0; j < 16; j++) {
-      (*impl)(&args);
-    }
+    ( * impl)( & args);
     __SET_END_TIME();
-    runtimes[i] = __CALC_RUNTIME() / 16;
+    runtimes[i] = __CALC_RUNTIME();
   }
   printf("Finished\n");
 
   /* Verfication */
   printf("  * Verifying results .... ");
-  bool match = __CHECK_MATCH(ref, dest, data_size);
-  bool guard = __CHECK_GUARD(     dest, data_size);
+  bool match = __CHECK_MATCH(ref, dest, data_size_C);
+  bool guard = __CHECK_GUARD(dest, data_size_C);
   if (match && guard) {
     printf("Success\n");
   } else if (!match && guard) {
@@ -415,9 +545,68 @@ int main(int argc, char** argv)
     printf("Failed\n");
   }
   printf("\n");
+  /* Dump A and B to CSV*/
+  if (p == 2) {
+    char filename[256];
+    strcpy(filename, impl_str);
+    strcat(filename, "_D_R.csv");
+    FILE * file = fopen(filename, "w");
+    if (file == NULL) {
+      perror("Error opening file");
+      exit(EXIT_FAILURE);
+    }
+    float * tmp3;
+    tmp3 = (float * ) dest;
+    // Write Matrix dest as a single row
+    for (int i = 0; i < size_A_m; i++) {
+      for (int j = 0; j < size_B_p; j++) {
+        fprintf(file, "%f", tmp3[i * size_A_m + j]); // Write element
+        if (i < size_A_m - 1 || j < size_B_p - 1) {
+          fprintf(file, ","); // Add comma
+        }
+      }
+    }
+    fprintf(file, "\n"); // Newline after A
 
+    // Write Matrix ref as a single row
+    float * tmp4;
+    tmp4 = (float * ) ref;
+    for (int i = 0; i < size_A_m; i++) {
+      for (int j = 0; j < size_B_p; j++) {
+        fprintf(file, "%f", tmp4[i * size_A_m + j]); // Write element
+        if (i < size_A_m - 1 || j < size_B_p - 1) {
+          fprintf(file, ","); // Add comma
+        }
+      }
+    }
+    fprintf(file, "\n"); // Newline after B
+
+    fclose(file);
+  }
+  //dest
+  if (p == 1) {
+    printf("\nThe Dest\n");
+    float * tmp3;
+    tmp3 = (float * ) dest;
+    for (int i = 0; i < size_A_m; i++) {
+      for (int j = 0; j < size_B_p; j++) {
+        printf("%f\t", tmp3[i * size_A_n + j]);
+      }
+      printf("\n");
+    }
+    printf("\nThe Ref\n");
+    float * tmp4;
+    tmp4 = (float * ) ref;
+    for (int i = 0; i < size_A_m; i++) {
+      for (int j = 0; j < size_B_p; j++) {
+        printf("%f\t", tmp4[i * size_A_n + j]);
+      }
+      printf("\n");
+    }
+  }
   /* Manage memory */
-  free(src);
+  free(src0);
+  free(src1);
   free(dest);
   free(ref);
 
