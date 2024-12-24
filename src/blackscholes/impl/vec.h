@@ -11,5 +11,7 @@
 
 /* Function declaration */
 void* impl_vector(void* args);
+void blackScholesAVX(const float* sptprice, const float* strike, const float* rate, const float* volatility,
+                     const float* otime, const char* otype, float* result);
 
 #endif //__IMPL_VEC_H_
