@@ -80,8 +80,7 @@ const int PRINT = 0;
 
 const int IMP_TYPE = 1;
 
-int main(int argc, char** argv)
-{
+int main(int argc, char ** argv) {
   /* Set the buffer for printf to NULL */
   setbuf(stdout, NULL);
 
@@ -89,8 +88,8 @@ int main(int argc, char** argv)
   int nthreads = 1;
   int cpu = 8;
 
-  int nruns    = 10000;
-  int nstdevs  = 3;
+  int nruns = 10000;
+  int nstdevs = 3;
 
   int v = VAILIDAT;
   int p = PRINT;
@@ -113,30 +112,36 @@ int main(int argc, char** argv)
 
   /* Parse arguments */
   /* Function pointers */
-  void* (*impl_scalar_naive_ptr)(void* args) = impl_scalar_naive;
-  void* (*impl_scalar_opt_ptr  )(void* args) = impl_scalar_opt;
-  void* (*impl_vector_ptr      )(void* args) = impl_vector;
-  void* (*impl_parallel_ptr    )(void* args) = impl_parallel;
+  void * ( * impl_scalar_naive_ptr)(void * args) = impl_scalar_naive;
+  void * ( * impl_scalar_opt_ptr)(void * args) = impl_scalar_opt;
+  void * ( * impl_vector_ptr)(void * args) = impl_vector;
+  void * ( * impl_parallel_ptr)(void * args) = impl_parallel;
 
   /* Chosen */
-  void* (*impl)(void* args) = NULL;
-  const char* impl_str      = NULL;
+  void * ( * impl)(void * args) = NULL;
+  const char * impl_str = NULL;
 
   bool help = false;
   for (int i = 1; i < argc; i++) {
+
     /* Implementations */
     if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--impl") == 0) {
-      assert (++i < argc);
+      assert(++i < argc);
       if (strcmp(argv[i], "naive") == 0) {
-        impl = impl_scalar_naive_ptr; impl_str = "scalar_naive";
-      } else if (strcmp(argv[i], "opt"  ) == 0) {
-        impl = impl_scalar_opt_ptr  ; impl_str = "scalar_opt"  ;
-      } else if (strcmp(argv[i], "vec"  ) == 0) {
-        impl = impl_vector_ptr      ; impl_str = "vectorized"  ;
-      } else if (strcmp(argv[i], "para" ) == 0) {
-        impl = impl_parallel_ptr    ; impl_str = "parallelized";
+        impl = impl_scalar_naive_ptr;
+        impl_str = "scalar_naive";
+      } else if (strcmp(argv[i], "opt") == 0) {
+        impl = impl_scalar_opt_ptr;
+        impl_str = "scalar_opt";
+      } else if (strcmp(argv[i], "vec") == 0) {
+        impl = impl_vector_ptr;
+        impl_str = "vectorized";
+      } else if (strcmp(argv[i], "para") == 0) {
+        impl = impl_parallel_ptr;
+        impl_str = "parallelized";
       } else {
-        impl = NULL                 ; impl_str = "unknown"     ;
+        impl = NULL;
+        impl_str = "unknown";
       }
 
       continue;
@@ -162,14 +167,14 @@ int main(int argc, char** argv)
 
     /* Run parameterization */
     if (strcmp(argv[i], "--nruns") == 0) {
-      assert (++i < argc);
+      assert(++i < argc);
       nruns = atoi(argv[i]);
 
       continue;
     }
 
     if (strcmp(argv[i], "--nstdevs") == 0) {
-      assert (++i < argc);
+      assert(++i < argc);
       nstdevs = atoi(argv[i]);
 
       continue;
@@ -202,14 +207,14 @@ int main(int argc, char** argv)
 
     /* Parallelization */
     if (strcmp(argv[i], "-n") == 0 || strcmp(argv[i], "--nthreads") == 0) {
-      assert (++i < argc);
+      assert(++i < argc);
       nthreads = atoi(argv[i]);
 
       continue;
     }
 
     if (strcmp(argv[i], "-c") == 0 || strcmp(argv[i], "--cpu") == 0) {
-      assert (++i < argc);
+      assert(++i < argc);
       cpu = atoi(argv[i]);
 
       continue;
@@ -257,7 +262,7 @@ int main(int argc, char** argv)
     printf("    -t               Implementation (Naive = 0) (Block != 0) used in Vector Implementation (default = Block)\n");
     printf("\n");
 
-    exit(help? 0 : 1);
+    exit(help ? 0 : 1);
   }
 
   /*Cheaking if the size of two matrixes are vailid for Matrix multiplication*/
@@ -283,16 +288,16 @@ int main(int argc, char** argv)
    *                                                              *
    * hawajkm: and here I was--thinking that MacOS is POSIX ...    *
    *          Silly me!                                           */
-#if !defined(__APPLE__)
+  #if!defined(__APPLE__)
   /* Set scheduling to reduce context switching */
   /*    -> Set scheduling scheme                */
   printf("  * Setting up FIFO scheduling scheme and high priority ... ");
-  pid_t pid    = 0;
-  int   policy = SCHED_FIFO;
+  pid_t pid = 0;
+  int policy = SCHED_FIFO;
   struct sched_param param;
 
   param.sched_priority = sched_get_priority_max(policy);
-  int res = sched_setscheduler(pid, policy, &param);
+  int res = sched_setscheduler(pid, policy, & param);
   if (res != 0) {
     printf("Failed\n");
   } else {
@@ -303,19 +308,19 @@ int main(int argc, char** argv)
   printf("  * Setting up scheduling affinity ... ");
   cpu_set_t cpumask;
 
-  CPU_ZERO(&cpumask);
+  CPU_ZERO( & cpumask);
   for (int i = 0; i < nthreads; i++) {
     CPU_SET((cpu + i) % nthreads, & cpumask);
   }
 
-  res = sched_setaffinity(pid, sizeof(cpumask), &cpumask);
+  res = sched_setaffinity(pid, sizeof(cpumask), & cpumask);
 
   if (res != 0) {
     printf("Failed\n");
   } else {
     printf("Succeeded\n");
   }
-#endif
+  #endif
   printf("\n");
 
   /* Statistics */
@@ -380,7 +385,7 @@ int main(int argc, char** argv)
   args_ref.input1 = src1;
   args_ref.output = ref;
 
-  args_ref.cpu      = cpu;
+  args_ref.cpu = cpu;
   args_ref.nthreads = nthreads;
 
   /* Running the reference function */
@@ -403,7 +408,7 @@ int main(int argc, char** argv)
   args.size_B = size_b;
   args.impType = t;
 
-  args.cpu      = cpu;
+  args.cpu = cpu;
   args.nthreads = nthreads;
 
   /* Start execution */
@@ -428,22 +433,22 @@ int main(int argc, char** argv)
     printf("Fail, but no buffer overruns\n");
   } else if (match && !guard) {
     printf("Success, but failed buffer overruns check\n");
-  } else if(!match && !guard) {
+  } else if (!match && !guard) {
     printf("Failed, and failed buffer overruns check\n");
   }
 
   /* Running analytics */
-  uint64_t min     = -1;
-  uint64_t max     =  0;
+  uint64_t min = -1;
+  uint64_t max = 0;
 
-  uint64_t avg     =  0;
-  uint64_t avg_n   =  0;
+  uint64_t avg = 0;
+  uint64_t avg_n = 0;
 
-  uint64_t std     =  0;
-  uint64_t std_n   =  0;
+  uint64_t std = 0;
+  uint64_t std_n = 0;
 
-  int      n_msked =  0;
-  int      n_stats =  0;
+  int n_msked = 0;
+  int n_stats = 0;
 
   for (int i = 0; i < num_runs; i++)
     runtimes_mask[i] = true;
@@ -452,8 +457,8 @@ int main(int argc, char** argv)
   do {
     n_stats++;
     printf("    + Starting statistics run number #%d:\n", n_stats);
-    avg_n =  0;
-    avg   =  0;
+    avg_n = 0;
+    avg = 0;
 
     /*   -> Calculate min, max, and avg */
     for (int i = 0; i < num_runs; i++) {
@@ -471,13 +476,13 @@ int main(int argc, char** argv)
     avg = avg / avg_n;
 
     /*   -> Calculate standard deviation */
-    std   =  0;
-    std_n =  0;
+    std = 0;
+    std_n = 0;
 
     for (int i = 0; i < num_runs; i++) {
       if (runtimes_mask[i]) {
-        std   += ((runtimes[i] - avg) *
-                  (runtimes[i] - avg));
+        std += ((runtimes[i] - avg) *
+          (runtimes[i] - avg));
         std_n += 1;
       }
     }
@@ -501,14 +506,18 @@ int main(int argc, char** argv)
       }
     }
 
-    printf("      - Standard deviation = %" PRIu64 "\n", std);
-    printf("      - Average = %" PRIu64 "\n", avg);
-    printf("      - Number of active elements = %" PRIu64 "\n", avg_n);
+    printf("      - Standard deviation = %"
+      PRIu64 "\n", std);
+    printf("      - Average = %"
+      PRIu64 "\n", avg);
+    printf("      - Number of active elements = %"
+      PRIu64 "\n", avg_n);
     printf("      - Number of masked-off = %d\n", n_msked);
   } while (n_msked > 0);
   /* Display information */
   printf("  * Runtimes (%s): ", __PRINT_MATCH(match));
-  printf(" %" PRIu64 " ns\n"  , avg                 );
+  printf(" %"
+    PRIu64 " ns\n", avg);
 
   /* Dump */
   printf("  * Dumping runtime informations:\n");
@@ -532,11 +541,13 @@ int main(int argc, char** argv)
     fprintf(fp, "runtimes");
     for (int i = 0; i < num_runs; i++) {
       fprintf(fp, ", ");
-      fprintf(fp, "%" PRIu64 "", runtimes[i]);
+      fprintf(fp, "%"
+        PRIu64 "", runtimes[i]);
     }
 
     fprintf(fp, "\n");
-    fprintf(fp, "avg,%" PRIu64 "", avg);
+    fprintf(fp, "avg,%"
+      PRIu64 "", avg);
     printf("Finished\n");
     printf("    - Closing file handle .... ");
     fclose(fp);
@@ -549,37 +560,61 @@ int main(int argc, char** argv)
   if (p == 2) {
     char filename[256];
     strcpy(filename, impl_str);
-    strcat(filename, "_D_R.csv");
+    strcat(filename, "A_B_D_R.csv");
     FILE * file = fopen(filename, "w");
     if (file == NULL) {
       perror("Error opening file");
       exit(EXIT_FAILURE);
     }
-    float * tmp3;
-    tmp3 = (float * ) dest;
-    // Write Matrix dest as a single row
+    float * tmp1;
+    tmp1 = (float * ) src0;
+    // Write Matrix A as a single row
     for (int i = 0; i < size_A_m; i++) {
-      for (int j = 0; j < size_B_p; j++) {
-        fprintf(file, "%f", tmp3[i * size_A_m + j]); // Write element
-        if (i < size_A_m - 1 || j < size_B_p - 1) {
+      for (int j = 0; j < size_A_n; j++) {
+        fprintf(file, "%f", tmp1[i * size_A_n + j]); // Write element
+        if (i < size_A_m - 1 || j < size_A_n - 1) {
           fprintf(file, ","); // Add comma
         }
       }
     }
     fprintf(file, "\n"); // Newline after A
+    float * tmp2;
+    tmp2 = (float * ) src1;
+    // Write Matrix B as a single row
+    for (int i = 0; i < size_B_n; i++) {
+      for (int j = 0; j < size_B_p; j++) {
+        fprintf(file, "%f", tmp2[i * size_B_p + j]); // Write element
+        if (i < size_B_n - 1 || j < size_B_p - 1) {
+          fprintf(file, ","); // Add comma
+        }
+      }
+    }
+    fprintf(file, "\n"); // Newline after B
+    float * tmp3;
+    tmp3 = (float * ) dest;
+    // Write Matrix dest as a single row
+    for (int i = 0; i < size_A_m; i++) {
+      for (int j = 0; j < size_B_p; j++) {
+        fprintf(file, "%f", tmp3[i * size_B_p + j]); // Write element
+        if (i < size_A_m - 1 || j < size_B_p - 1) {
+          fprintf(file, ","); // Add comma
+        }
+      }
+    }
+    fprintf(file, "\n"); // Newline after dest
 
     // Write Matrix ref as a single row
     float * tmp4;
     tmp4 = (float * ) ref;
     for (int i = 0; i < size_A_m; i++) {
       for (int j = 0; j < size_B_p; j++) {
-        fprintf(file, "%f", tmp4[i * size_A_m + j]); // Write element
+        fprintf(file, "%f", tmp4[i * size_B_p + j]); // Write element
         if (i < size_A_m - 1 || j < size_B_p - 1) {
           fprintf(file, ","); // Add comma
         }
       }
     }
-    fprintf(file, "\n"); // Newline after B
+    fprintf(file, "\n"); // Newline after ref
 
     fclose(file);
   }
